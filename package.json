@@ -1,0 +1,21 @@
+{
+  "name": "sustainovate-vercel",
+  "version": "1.0.0",
+  "description": "Sustainovate Green Innovation Hub backend for Vercel",
+  "main": "index.html",
+  "type": "module",
+  "scripts": {
+    "start": "echo 'Run on Vercel' && exit 0"
+  },
+  "keywords": [
+    "gemini",
+    "ai",
+    "vercel"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google/genai": "^1.29.0",
+    "express": "^4.19.2"
+  }
+}
