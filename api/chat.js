@@ -1,15 +1,29 @@
-// /api/chat.js
+// /api/chat.js - CORRECTED
 import { GoogleGenAI } from "@google/genai";
 import express from 'express';
 
-// Vercel automatically loads GEMINI_API_KEY from environment variables
-const ai = new GoogleGenAI(process.env.GEMINI_API_KEY);
-const model = 'gemini-2.5-flash';
+// --- REMOVE THESE GLOBAL INITIALIZATIONS ---
+// const ai = new GoogleGenAI(process.env.GEMINI_API_KEY); // <-- DELETE THIS LINE
+// const model = 'gemini-2.5-flash'; // <-- KEEP model name here
 
 const app = express();
 app.use(express.json());
 
+const model = 'gemini-2.5-flash'; // Define model name globally or locally
+
 app.post('/', async (req, res) => {
+    
+    // 1. *** MOVE KEY ACCESS INSIDE THE HANDLER ***
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+    if (!GEMINI_API_KEY) {
+        // This is a safety check for Vercel debugging
+        return res.status(500).json({ success: false, text: 'API Key not loaded in function context.' });
+    }
+
+    const ai = new GoogleGenAI(GEMINI_API_KEY);
+    // ------------------------------------------
+
     const { prompt } = req.body;
     
     // Set CORS headers for Vercel functions
