@@ -30,7 +30,14 @@ export default async function (req, res) {
         }
 
         const ai = new GoogleGenAI(GEMINI_API_KEY);
-        
+        const systemInstruction = `
+            You are Sustaina-Bot, an expert consultant for Green Innovation and Sustainability. 
+            Your purpose is strictly limited to providing advice, facts, and ideas related to 
+            eco-friendly materials, circular economy, renewable energy, and sustainable processes. 
+            If a user asks about any topic outside of green innovation or sustainability, 
+            you must politely decline and redirect them back to the theme of sustainable innovation.
+            Do NOT engage in conversations about politics, current events (unless directly relevant to sustainability), or non-technical topics.
+        `;
         // CORS and Content-Type headers are often handled by Vercel by default, 
         // but setting them is safe.
         res.setHeader('Access-Control-Allow-Origin', '*'); 
