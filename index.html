@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sustainovate: Green Innovation Hub</title>
-   
+    
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-   
+    
     <style>
         /* =======================================================
-           [CSS STYLES] - Your original green-themed CSS is included here.
+           [CSS STYLES] 
            ======================================================= */
         :root {
             --color-primary-green: #2e7d32; /* Deep Forest Green */
@@ -203,7 +203,7 @@
         .chat-message {
             display: flex;
             margin-bottom: 15px;
-            align-items: flex-end; 
+            align-items: flex-start; /* Aligns messages at the top */
         }
 
         .chat-message.user-message {
@@ -266,10 +266,20 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            margin-left: 10px; /* Space between input and buttons */
+        }
+        .chat-input-form button.voice-btn {
+            background-color: #c0c0c0; /* Gray for microphone */
+        }
+        .chat-input-form button.voice-btn.recording {
+            background-color: #d32f2f; /* Red when recording */
         }
         .chat-input-form button:hover {
             background-color: #216a24;
             transform: translateY(-1px);
+        }
+        .chat-input-form button.voice-btn:hover {
+            background-color: #a0a0a0;
         }
         .chat-input-form button i {
             margin: 0; 
@@ -438,14 +448,19 @@
                 padding: 15px;
             }
             .chat-input-form {
-                flex-direction: column;
-                gap: 10px;
+                flex-direction: row; /* Keep row layout for mobile buttons */
+                flex-wrap: wrap;
+                gap: 5px;
             }
             .chat-input-form input {
+                flex: 1 1 100%; /* Input takes full width */
                 margin-right: 0;
+                margin-bottom: 10px;
             }
             .chat-input-form button {
-                width: 100%;
+                width: auto;
+                flex: 1;
+                margin: 0;
             }
         }
     </style>
@@ -481,12 +496,17 @@
                 <div class="chat-container">
                     <div id="chatWindow" class="chat-window">
                         <div class="chat-message bot-message">
-                            <span class="message-content">Hello! I am Sustaina-Bot, ready to help you greenify your innovations. What's on your mind?</span>
+                            <span class="message-content">Hello! I am Sustaina-Bot, your expert in green innovation. What sustainable solution can I help you refine today?</span>
                         </div>
                     </div>
                     
                     <form class="chat-input-form" onsubmit="sendMessage(event)">
                         <input type="text" id="userInput" placeholder="Ask Sustaina-Bot a question...">
+                        
+                        <button type="button" class="voice-btn" id="voiceButton" onclick="startVoiceRecognition()" title="Voice Input">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        
                         <button type="submit"><i class="fas fa-paper-plane"></i></button>
                     </form>
                 </div>
@@ -498,7 +518,7 @@
                 <h2 class="section-title"><i class="fas fa-lightbulb"></i> Submit Your Green Innovation</h2>
                 <p>Have an idea that can change the world? Share it with the Sustainovate community and get valuable feedback!</p>
 
-                <form id="ideaSubmissionForm" class="submission-form">
+                <form id="ideaSubmissionForm" class="submission-form" onsubmit="sendSubmission(event)">
 
                     <label for="ideaTitle">Idea Title <span class="required">*</span></label>
                     <input type="text" id="ideaTitle" name="ideaTitle" placeholder="e.g., Ocean Plastic Upcycling Plant" required>
@@ -555,6 +575,23 @@
 
     <script>
         // =======================================================
+        // 0. UTILITY FUNCTION: Markdown to HTML Converter
+        // =======================================================
+        function convertSimpleMarkdown(text) {
+            // Converts **bold text** to <b>bold text</b>
+            let html = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+            
+            // Converts *italic text* to <i>italic text</i> (Optional)
+            html = html.replace(/\*(.*?)\*/g, '<i>$1</i>');
+
+            // Converts lists and newlines (approximation)
+            html = html.replace(/\n\s*\*\s*/g, '<br>&bull; '); // Handles bulleted lists (approx)
+            html = html.replace(/\n/g, '<br>'); // Converts remaining newlines to line breaks
+
+            return html;
+        }
+
+        // =======================================================
         // 1. AI CHAT CONNECTION (USES RELATIVE PATH: /api/chat)
         // =======================================================
         async function sendMessage(event) {
@@ -597,14 +634,15 @@
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    messageContent.textContent = data.text;
+                    // FIX: Use innerHTML and Markdown converter
+                    messageContent.innerHTML = convertSimpleMarkdown(data.text);
                 } else {
                     throw new Error(data.text || `Server Error: HTTP status ${response.status}. Check Vercel logs.`);
                 }
 
             } catch (error) {
                 console.error('Frontend Fetch Error:', error);
-                messageContent.textContent = 'Sorry, the AI service is unreachable or failed. Ensure your GEMINI_API_KEY is set in Vercel!';
+                messageContent.textContent = 'Sorry, the AI service is unreachable or failed. Ensure your backend is deployed and key is valid.';
                 messageContent.className = 'message-content message-error'; 
             }
 
@@ -612,62 +650,119 @@
         }
 
         // =======================================================
-        // 2. IDEA SUBMISSION LOGIC (USES RELATIVE PATH: /api/submit)
+        // 2. VOICE RECOGNITION (Web Speech API)
         // =======================================================
-        document.addEventListener('DOMContentLoaded', () => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const voiceButton = document.getElementById('voiceButton');
+        let recognition = null;
+        
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            
+            recognition.onstart = function() {
+                voiceButton.classList.add('recording');
+                voiceButton.innerHTML = '<i class="fas fa-stop"></i>';
+                document.getElementById('userInput').placeholder = 'Speak now...';
+            };
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('userInput').value = transcript;
+                
+                // Automatically submit the message after recognition
+                const form = document.querySelector('.chat-input-form');
+                form.dispatchEvent(new Event('submit', { cancelable: true }));
+            };
+
+            recognition.onend = function() {
+                voiceButton.classList.remove('recording');
+                voiceButton.innerHTML = '<i class="fas fa-microphone"></i>';
+                document.getElementById('userInput').placeholder = 'Ask Sustaina-Bot a question...';
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Speech Recognition Error:', event.error);
+                alert('Voice recognition failed: ' + event.error);
+                recognition.onend();
+            };
+        } else {
+            // Disable button if API is not supported
+            voiceButton.disabled = true;
+            voiceButton.title = 'Voice recognition not supported in this browser.';
+        }
+
+        function startVoiceRecognition() {
+            if (recognition) {
+                try {
+                    recognition.start();
+                } catch (e) {
+                    // Avoid error if recognition is already starting/active
+                    if (e.name !== 'InvalidStateError') {
+                        console.error('Error starting recognition:', e);
+                    }
+                }
+            }
+        }
+
+
+        // =======================================================
+        // 3. IDEA SUBMISSION LOGIC (USES RELATIVE PATH: /api/submit)
+        // =======================================================
+        async function sendSubmission(e) {
+            e.preventDefault();
+
             const form = document.getElementById('ideaSubmissionForm');
             const messageElement = document.getElementById('submissionMessage');
 
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
+            // 1. Get the form data
+            const formData = {
+                title: document.getElementById('ideaTitle').value,
+                category: document.getElementById('category').value,
+                description: document.getElementById('ideaDescription').value,
+                impactMetric: document.getElementById('impactMetric').value || null,
+                submitterName: document.getElementById('submitterName').value || null,
+                submitterEmail: document.getElementById('submitterEmail').value || null
+            };
+            
+            // Display processing message
+            messageElement.textContent = "Submitting idea...";
+            messageElement.className = 'message-warning'; 
+            messageElement.classList.remove('hidden');
 
-                // 1. Get the form data
-                const formData = {
-                    title: document.getElementById('ideaTitle').value,
-                    category: document.getElementById('category').value,
-                    description: document.getElementById('ideaDescription').value,
-                    impactMetric: document.getElementById('impactMetric').value || null,
-                    submitterName: document.getElementById('submitterName').value || null,
-                    submitterEmail: document.getElementById('submitterEmail').value || null
-                };
-                
-                // Display processing message
-                messageElement.textContent = "Submitting idea...";
-                messageElement.className = 'message-warning'; 
-                messageElement.classList.remove('hidden');
+            // 2. API INTEGRATION
+            try {
+                // VERCEL URL: Call the new database API endpoint
+                const response = await fetch('/api/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
 
-                // 2. API INTEGRATION
-                try {
-                    // VERCEL URL: Use relative path /api/submit
-                    const response = await fetch('/api/submit', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(formData)
-                    });
+                const data = await response.json();
 
-                    const data = await response.json();
-
-                    if (response.ok && data.success) {
-                        // SUCCESS
-                        messageElement.textContent = data.message;
-                        messageElement.className = 'message-success';
-                        form.reset(); 
-                    } else {
-                        // FAILURE
-                        messageElement.textContent = data.message || "Submission failed due to a server error.";
-                        messageElement.className = 'message-error';
-                    }
-                } catch (error) {
-                    // FAILURE (Network error)
-                    console.error('Submission Error:', error);
-                    messageElement.textContent = "Could not connect to the submission server. Please check deployment status!";
+                if (response.ok && data.success) {
+                    // SUCCESS
+                    messageElement.textContent = data.message || "Idea successfully submitted!";
+                    messageElement.className = 'message-success';
+                    form.reset(); 
+                } else {
+                    // FAILURE
+                    messageElement.textContent = data.message || "Submission failed due to a server error.";
                     messageElement.className = 'message-error';
                 }
-            });
-        });
+            } catch (error) {
+                // FAILURE (Network error)
+                console.error('Submission Error:', error);
+                messageElement.textContent = "Could not connect to the submission server (/api/submit). Please check backend deployment!";
+                messageElement.className = 'message-error';
+            }
+        }
 
         // =======================================================
-        // 3. Smooth Scrolling for Navigation
+        // 4. Smooth Scrolling for Navigation
         // =======================================================
         document.querySelectorAll('nav a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
@@ -680,7 +775,6 @@
                 }
             });
         });
-
     </script>
 </body>
 </html>
