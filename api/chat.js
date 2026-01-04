@@ -2,7 +2,7 @@
 import { GoogleGenAI } from "@google/generative-ai";
 
 // 1. Model Selection
-const model = 'gemini-2.5-flash';
+const model = 'gemini-1.5-flash';
 
 // 2. System Instruction (The core logic for topic restriction)
 const systemInstruction = `
