@@ -463,6 +463,48 @@
                 margin: 0;
             }
         }
+        .ideas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 25px;
+    margin-top: 40px;
+}
+
+.idea-card {
+    background: var(--color-white);
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    text-align: left;
+    border-top: 4px solid var(--color-secondary-teal);
+    transition: transform 0.3s ease;
+}
+
+.idea-card:hover {
+    transform: translateY(-5px);
+}
+
+.idea-card h3 {
+    font-size: 1.4em;
+    margin-bottom: 10px;
+    color: var(--color-primary-green);
+}
+
+.vote-btn {
+    background: #fff0f0;
+    border: none;
+    color: #d32f2f;
+    padding: 8px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.collab-link {
+    font-size: 0.9em;
+    color: var(--color-secondary-teal);
+    font-weight: 600;
+}
     </style>
 </head>
 <body>
@@ -559,10 +601,13 @@
 
         <section id="community-section" class="content-section">
             <div class="container">
-                <h2 class="section-title"><i class="fas fa-users"></i> Join the Sustainovate Community</h2>
-                <p>Explore, vote, and collaborate on groundbreaking sustainable ideas from around the world. Be part of the change!</p>
-                <a href="#" class="cta-button">Explore Ideas <i class="fas fa-arrow-right"></i></a>
-            </div>
+            <h2 class="section-title"><i class="fas fa-users"></i> Community Innovation Hub</h2>
+        <p>Explore ideas, support your favorites, and connect with innovators.</p>
+        
+        <div id="ideasGrid" class="ideas-grid">
+            <p>Loading community ideas...</p>
+        </div>
+         </div>
         </section>
 
     </main>
@@ -775,6 +820,59 @@
                 }
             });
         });
+        // Function to load and display ideas
+async function fetchCommunityIdeas() {
+    const grid = document.getElementById('ideasGrid');
+    
+    try {
+        const response = await fetch('/api/get-ideas');
+        const data = await response.json();
+
+        if (data.success && data.ideas.length > 0) {
+            grid.innerHTML = data.ideas.map(idea => `
+                <div class="idea-card">
+                    <span style="font-size:0.8em; color:gray;">${idea.category}</span>
+                    <h3>${idea.title}</h3>
+                    <p>${idea.description.substring(0, 120)}...</p>
+                    <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <button class="vote-btn" onclick="handleVote(${idea.id})">
+                            <i class="fas fa-heart"></i> <span id="vote-count-${idea.id}">${idea.votes || 0}</span>
+                        </button>
+                        <a href="mailto:${idea.submitter_email}?subject=Collaboration: ${idea.title}" class="collab-link">
+                            <i class="fas fa-envelope"></i> Collaborate
+                        </a>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            grid.innerHTML = "<p>No ideas submitted yet. Be the first!</p>";
+        }
+    } catch (error) {
+        grid.innerHTML = "<p>Error loading community hub.</p>";
+    }
+}
+
+// Function to handle voting
+async function handleVote(ideaId) {
+    try {
+        const response = await fetch('/api/vote', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: ideaId })
+        });
+
+        if (response.ok) {
+            const voteSpan = document.getElementById(`vote-count-${ideaId}`);
+            voteSpan.innerText = parseInt(voteSpan.innerText) + 1;
+        }
+    } catch (error) {
+        console.error("Voting failed", error);
+    }
+}
+
+// Automatically load ideas when the page opens
+window.addEventListener('DOMContentLoaded', fetchCommunityIdeas);
     </script>
 </body>
 </html>
