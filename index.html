@@ -505,6 +505,40 @@
     color: var(--color-secondary-teal);
     font-weight: 600;
 }
+        .leaderboard-grid {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 30px;
+}
+
+.leader-card {
+    background: white;
+    padding: 30px;
+    border-radius: 20px;
+    width: 300px;
+    position: relative;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    border: 2px solid transparent;
+}
+
+/* Rank Styling */
+.rank-1 { border-color: #ffd700; transform: scale(1.05); z-index: 2; } /* Gold */
+.rank-2 { border-color: #c0c0c0; } /* Silver */
+.rank-3 { border-color: #cd7f32; } /* Bronze */
+
+.badge {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-primary-green);
+    color: white;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+}
     </style>
 </head>
 <body>
@@ -609,7 +643,15 @@
         </div>
          </div>
         </section>
-
+        <section id="leaderboard-section" class="content-section" style="background-color: #e8f5e9;">
+    <div class="container">
+        <h2 class="section-title"><i class="fas fa-trophy" style="color: gold;"></i> Hall of Green</h2>
+        <p>The most celebrated innovations from our community.</p>
+        
+        <div id="leaderboard-container" class="leaderboard-grid">
+            </div>
+    </div>
+</section>
     </main>
 
     <footer>
@@ -872,7 +914,38 @@ async function handleVote(ideaId) {
 }
 
 // Automatically load ideas when the page opens
-window.addEventListener('DOMContentLoaded', fetchCommunityIdeas);
+async function loadLeaderboard() {
+    const container = document.getElementById('leaderboard-container');
+    
+    try {
+        const response = await fetch('/api/get-leaderboard');
+        const data = await response.json();
+
+        if (data.success && data.leaderboard.length > 0) {
+            container.innerHTML = data.leaderboard.map((idea, index) => `
+                <div class="leader-card rank-${index + 1}">
+                    <div class="badge">Rank #${index + 1}</div>
+                    <h3 style="margin-top:10px;">${idea.title}</h3>
+                    <p style="color:var(--color-secondary-teal); font-weight:bold;">${idea.category}</p>
+                    <div style="font-size: 1.2em; font-weight:bold; color:var(--color-primary-green);">
+                        <i class="fas fa-heart"></i> ${idea.votes} Votes
+                    </div>
+                    <p style="font-size:0.9em; color:gray;">By ${idea.submitter_name || 'Innovator'}</p>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = "<p>No votes yet! Support an idea to see it here.</p>";
+        }
+    } catch (error) {
+        console.error("Leaderboard error:", error);
+    }
+}
+
+// Update your existing window.onload to include this
+window.addEventListener('DOMContentLoaded', () => {
+    fetchCommunityIdeas(); // Your existing function
+    loadLeaderboard();     // New function
+});
     </script>
 </body>
 </html>
