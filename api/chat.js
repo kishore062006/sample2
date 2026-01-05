@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/genai"; // Matched to package.json
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const MODEL_NAME = 'gemini-1.5-flash';
 
