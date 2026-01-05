@@ -39,8 +39,8 @@ export default async function handler(req, res) {
         });
 
         const chat = model.startChat({
-            history: history || [],
-        });
+    history: Array.isArray(history) ? history : [], 
+});
 
         const result = await chat.sendMessage(prompt);
         const response = await result.response;
