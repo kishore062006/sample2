@@ -38,7 +38,9 @@ export default async function handler(req, res) {
         const model = genAI.getGenerativeModel({ 
             model: MODEL_NAME,
             systemInstruction: systemInstruction 
-        });
+        },
+                                               { apiVersion: 'v1' }
+        );
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
