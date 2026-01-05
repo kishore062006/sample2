@@ -1,13 +1,25 @@
 {
   "name": "sustainovate-vercel",
   "version": "1.0.0",
+  "description": "Sustainovate Green Innovation Hub backend for Vercel",
+  "main": "index.html",
   "type": "module",
   "scripts": {
-    "dev": "vercel dev",
-    "build": "echo 'No build step needed'"
+    "start": "echo 'Run on Vercel' && exit 0"
+    "dev": "node api/index.js",
+    "start": "node api/index.js"
   },
+  "keywords": [
+    "gemini",
+    "ai",
+    "vercel"
+  ],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
     "@vercel/postgres": "^0.10.0",
+    "@google/generative-ai": "^0.21.0",
+    "express": "^4.19.2"
     "@google/genai": "^1.0.0",
     "express": "^4.19.2",
     "dotenv": "^16.4.0"
