@@ -11,13 +11,14 @@ const systemInstruction = `
 `;
 
 export default async function handler(req, res) {
-    // 1. Handle CORS and Method
+    // 1. Handle Method check
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, text: "Method Not Allowed" });
     }
 
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
+    // 2. Check for API Key
     if (!GEMINI_API_KEY) {
         return res.status(500).json({ 
             success: false, 
@@ -26,23 +27,21 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { prompt, history } = req.body;
+        const { prompt } = req.body;
         
         if (!prompt) {
             return res.status(400).json({ success: false, text: "No prompt provided." });
         }
 
+        // 3. Initialize Gemini AI
         const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
         const model = genAI.getGenerativeModel({ 
             model: MODEL_NAME,
             systemInstruction: systemInstruction 
         });
 
-        const chat = model.startChat({
-    history: Array.isArray(history) ? history : [], 
-});
-
-        const result = await chat.sendMessage(prompt);
+        // 4. Generate response (Simplified to avoid history formatting crashes)
+        const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text();
 
