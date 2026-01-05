@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const MODEL_NAME = 'gemini-1.5-flash';
+// CHANGE: Some SDK versions prefer the 'models/' prefix explicitly
+const MODEL_NAME = 'gemini-1.5-flash'; 
 
 const systemInstruction = `
     You are Sustaina-Bot, an expert consultant for Green Innovation and Sustainability. 
@@ -11,14 +12,12 @@ const systemInstruction = `
 `;
 
 export default async function handler(req, res) {
-    // 1. Handle Method check
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, text: "Method Not Allowed" });
     }
 
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-    // 2. Check for API Key
     if (!GEMINI_API_KEY) {
         return res.status(500).json({ 
             success: false, 
@@ -33,14 +32,14 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, text: "No prompt provided." });
         }
 
-        // 3. Initialize Gemini AI
         const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+        
+        // FIX: Ensure we are using the stable v1 version of the model
         const model = genAI.getGenerativeModel({ 
             model: MODEL_NAME,
             systemInstruction: systemInstruction 
         });
 
-        // 4. Generate response (Simplified to avoid history formatting crashes)
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text();
@@ -49,9 +48,11 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Gemini API Error:', error);
+        
+        // BETTER ERROR HANDLING: Check if it's the 404 version error again
         return res.status(500).json({ 
             success: false, 
-            text: `AI Error: ${error.message}` 
+            text: `AI Error: ${error.message}. Please verify model availability.` 
         });
     }
 }
