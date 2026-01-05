@@ -40,7 +40,7 @@ export default async function (req, res) {
             return res.status(400).json({ success: false, text: "No prompt provided." });
         }
 
-        const ai = new GoogleGenAI(GEMINI_API_KEY);
+        const ai = new GoogleGenerativeAI(GEMINI_API_KEY);
         
         // Setting CORS header for frontend access
         res.setHeader('Access-Control-Allow-Origin', '*'); 
