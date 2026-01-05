@@ -1,5 +1,5 @@
 // /api/chat.js - Vercel Native Handler for Green Innovation
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/genai";
 
 // 1. Model Selection
 const MODEL_NAME = 'gemini-1.5-flash'; // Use gemini-1.5-flash for reliability
