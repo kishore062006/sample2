@@ -2,66 +2,63 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // 1. Model Selection
-const model = 'gemini-1.5-flash';
+const MODEL_NAME = 'gemini-1.5-flash'; // Use gemini-1.5-flash for reliability
 
-// 2. System Instruction (The core logic for topic restriction)
+// 2. System Instruction
 const systemInstruction = `
     You are Sustaina-Bot, an expert consultant for Green Innovation and Sustainability. 
     Your purpose is strictly limited to providing advice, facts, and ideas related to 
     eco-friendly materials, circular economy, renewable energy, and sustainable processes. 
     If a user asks about any topic outside of green innovation or sustainability, 
     you must politely decline and redirect them back to the theme of sustainable innovation.
-    Do NOT engage in conversations about politics, current events (unless directly relevant to sustainability), or non-technical topics.
+    Do NOT engage in conversations about politics, current events, or non-technical topics.
 `;
 
-// 3. Main Vercel Handler Function
 export default async function (req, res) {
-    
-    // Ensure only POST requests are processed
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, text: "Method Not Allowed" });
     }
 
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-    // API Key Check
     if (!GEMINI_API_KEY) {
-        console.error("DEBUG: GEMINI_API_KEY is NOT set in the Vercel Environment.");
         return res.status(500).json({ 
             success: false, 
-            text: 'API Key not loaded in function context. Please check Vercel settings.' 
+            text: 'API Key not loaded. Please check Vercel environment variables.' 
         });
     }
 
     try {
-        const { prompt } = req.body;
+        const { prompt, history } = req.body; // history allows for memory (multi-turn chat)
         
         if (!prompt) {
             return res.status(400).json({ success: false, text: "No prompt provided." });
         }
 
-        const ai = new GoogleGenerativeAI(GEMINI_API_KEY);
+        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
         
-        // Setting CORS header for frontend access
-        res.setHeader('Access-Control-Allow-Origin', '*'); 
+        // CORRECT WAY to apply System Instructions: During model initialization
+        const model = genAI.getGenerativeModel({ 
+            model: MODEL_NAME,
+            systemInstruction: systemInstruction 
+        });
 
         // 4. Generate Content Call
-        const response = await ai.models.generateContent({
-            model: model,
-            // Apply the system instruction
-            config: { 
-                systemInstruction: systemInstruction 
-            },
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        // We use startChat so that the AI can remember previous context if you pass 'history'
+        const chat = model.startChat({
+            history: history || [],
         });
 
-        res.status(200).json({ success: true, text: response.text });
+        const result = await chat.sendMessage(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        res.status(200).json({ success: true, text: text });
     } catch (error) {
-        // Catch API errors (like 503 Overloaded or 401 Invalid Key)
-        console.error('Gemini API Error:', error.message || error);
+        console.error('Gemini API Error:', error);
         res.status(500).json({ 
             success: false, 
-            text: `AI Server Error: ${error.message || 'Unknown error.'}` 
+            text: `AI Server Error: ${error.message || 'The AI service is currently unavailable.'}` 
         });
     }
-};
+}
